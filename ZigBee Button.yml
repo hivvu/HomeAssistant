@@ -1,56 +1,64 @@
 blueprint:
-  name: Aqara Zigbee Button
-  description: Setup actions for three functions of the Aqara Zigbee button with
-    Press, Double Press, and Hold.
+  name: ZHA - Aqara Wireless Mini Switch
+  description: Automate your Xiaomi Aqara Wireless Mini Switch using ZHA events.
   domain: automation
   input:
-    button_id:
-      name: Button
-      description: The button to configure.
+    aqara_mini_switch:
+      name: Aqara Wireless Mini Switch
+      description: Aqara Wireless Mini Switch to use
       selector:
         device:
+          integration: zha
           manufacturer: LUMI
-          model: lumi.switch.n0agl1
-    press_action:
-      name: Press Action
-      description: Action to perform on Press.
+          model: lumi.remote.b1acn02
+    button_single_press:
+      name: Single Press
+      description: Action to run on single press
       default: []
       selector:
-        action: {}
-    double_press_action:
-      name: Double Press Action
-      description: Action to perform on Double Press.
+        action:
+    button_double_press:
+      name: Double Press
+      description: Action to run on double press
       default: []
       selector:
-        action: {}
-    hold_action:
-      name: Hold Action
-      description: Action to perform on Hold.
+        action:
+    button_long_press:
+      name: Long Press
+      description: Action to run when button is long pressed (held down)
       default: []
       selector:
-        action: {}
-  source_url: https://github.com/apollo1220/blueprints/blob/main/aqara_zigbee_button.yaml
-variables:
-  button_id: !input 'button_id'
-  press_action: !input 'press_action'
-  double_press_action: !input 'double_press_action'
-  hold_action: !input 'hold_action'
+        action:
+    button_released:
+      name: Released
+      description: Action to run when button is released after a long press
+      default: []
+      selector:
+        action:
+
+mode: restart
+max_exceeded: silent
+
 trigger:
-- platform: event
-  event_type: zha_event
-  event_data:
-    device_id: !input 'button_id'
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input aqara_mini_switch
+
 action:
-- choose:
-  - conditions:
-    - condition: template
-      value_template: '{{ trigger.event.data.command == "single" }}'
-    sequence: !input 'press_action'
-  - conditions:
-    - condition: template
-      value_template: '{{ trigger.event.data.command == "double" }}'
-    sequence: !input 'double_press_action'
-  - conditions:
-    - condition: template
-      value_template: '{{ trigger.event.data.command == "hold" }}'
-    sequence: !input 'hold_action'
+  - variables:
+      command: "{{ trigger.event.data.command }}"
+
+  - choose:
+      - conditions:
+          - "{{ command == 'single' }}"
+        sequence: !input button_single_press
+      - conditions:
+          - "{{ command == 'double' }}"
+        sequence: !input button_double_press
+      - conditions:
+          - "{{ command == 'hold' }}"
+        sequence: !input button_long_press
+      - conditions:
+          - "{{ command == 'release' }}"
+        sequence: !input button_released
